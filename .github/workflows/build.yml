@@ -1,72 +1,52 @@
-
 name: Build RANAS AI APK
-
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-
+workflow_dispatch:
+push:
+branches:
+- main
 permissions:
-  contents: read
-
+contents: read
 jobs:
-  build:
-    runs-on: ubuntu-latest
+build:
+runs-on: ubuntu-latest
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  - name: Extract project
+    run: unzip -o ranas-ai-project.zip -d .
 
-      - name: Extract project
-        run: unzip -o ranas-ai-project.zip -d .
+  - name: Setup Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+  - name: Setup Gradle
+    uses: gradle/actions/setup-gradle@v4
+    with:
+      gradle-version: '8.9'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+  - name: Fix JVM targets
+    working-directory: GENIUS_AI/android
+    run: |
+      python3 -c "from pathlib import Path; p=Path('app/build.gradle'); s=p.read_text(); s=s.replace('    compileSdk 35', '''    compileSdk 35
 
-      - name: Fix Java and Kotlin targets
-        working-directory: GENIUS_AI/android
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
+compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+}
 
-          p = Path("app/build.gradle")
-          s = p.read_text()
+kotlinOptions {
+    jvmTarget = '17'
+}''', 1); p.write_text(s)"
 
-          marker = "        versionName '1.0.0'\n    }\n}"
-          replacement = """        versionName '1.0.0'
-    }
+  - name: Build APK
+    working-directory: GENIUS_AI/android
+    run: gradle assembleDebug
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = '17'
-    }
-}"""
-
-          if marker not in s:
-              raise SystemExit("Could not find expected section in app/build.gradle")
-
-          p.write_text(s.replace(marker, replacement, 1))
-          print("Java and Kotlin targets updated to 17")
-          PY
-
-      - name: Build APK
-        working-directory: GENIUS_AI/android
-        run: gradle assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: RANAS-AI-APK
-          path: GENIUS_AI/android/app/build/outputs/apk/debug/*.apk
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: RANAS-AI-APK
+      path: GENIUS_AI/android/app/build/outputs/apk/debug/*.apk
