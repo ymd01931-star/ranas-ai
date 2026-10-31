@@ -1,52 +1,56 @@
 name: Build RANAS AI APK
+
 on:
-workflow_dispatch:
-push:
-branches:
-- main
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
 permissions:
-contents: read
+  contents: read
+
 jobs:
-build:
-runs-on: ubuntu-latest
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+  build:
+    runs-on: ubuntu-latest
 
-  - name: Extract project
-    run: unzip -o ranas-ai-project.zip -d .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  - name: Setup Java
-    uses: actions/setup-java@v4
-    with:
-      distribution: temurin
-      java-version: '17'
+      - name: Extract project
+        run: unzip -o ranas-ai-project.zip -d .
 
-  - name: Setup Gradle
-    uses: gradle/actions/setup-gradle@v4
-    with:
-      gradle-version: '8.9'
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-  - name: Fix JVM targets
-    working-directory: GENIUS_AI/android
-    run: |
-      python3 -c "from pathlib import Path; p=Path('app/build.gradle'); s=p.read_text(); s=s.replace('    compileSdk 35', '''    compileSdk 35
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
-compileOptions {
-    sourceCompatibility JavaVersion.VERSION_17
-    targetCompatibility JavaVersion.VERSION_17
-}
+      - name: Fix JVM targets
+        working-directory: GENIUS_AI/android
+        run: |
+          python3 -c "from pathlib import Path; p=Path('app/build.gradle'); s=p.read_text(); s=s.replace('    compileSdk 35', '''    compileSdk 35
 
-kotlinOptions {
-    jvmTarget = '17'
-}''', 1); p.write_text(s)"
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 
-  - name: Build APK
-    working-directory: GENIUS_AI/android
-    run: gradle assembleDebug
+    kotlinOptions {
+        jvmTarget = '17'
+    }''', 1); p.write_text(s)"
 
-  - name: Upload APK
-    uses: actions/upload-artifact@v4
-    with:
-      name: RANAS-AI-APK
-      path: GENIUS_AI/android/app/build/outputs/apk/debug/*.apk
+      - name: Build APK
+        working-directory: GENIUS_AI/android
+        run: gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RANAS-AI-APK
+          path: GENIUS_AI/android/app/build/outputs/apk/debug/*.apk
